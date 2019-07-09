@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2017 Groupon, Inc
- * Copyright 2014-2017 The Billing Project, LLC
+ * Copyright 2014-2019 Groupon, Inc
+ * Copyright 2014-2019 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -44,6 +44,7 @@ import org.killbill.billing.events.PaymentErrorInternalEvent;
 import org.killbill.billing.events.PaymentInfoInternalEvent;
 import org.killbill.billing.events.PaymentInternalEvent;
 import org.killbill.billing.events.PaymentPluginErrorInternalEvent;
+import org.killbill.billing.events.TagInternalEvent;
 import org.killbill.billing.events.TenantConfigChangeInternalEvent;
 import org.killbill.billing.events.TenantConfigDeletionInternalEvent;
 import org.killbill.billing.events.UserTagCreationInternalEvent;
@@ -59,6 +60,7 @@ import org.killbill.billing.util.callcontext.CallOrigin;
 import org.killbill.billing.util.callcontext.InternalCallContextFactory;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.callcontext.UserType;
+import org.killbill.billing.util.tag.TagDefinition;
 import org.killbill.bus.api.BusEvent;
 import org.killbill.bus.api.PersistentBus;
 import org.killbill.bus.api.PersistentBus.EventBusException;
@@ -100,7 +102,9 @@ public class TestBeatrixListener {
 
     private static final UUID PAYMENT_TRANSACTION_ID = UUID.randomUUID();
     private static final DateTime PAYMENT_EFFECTIVE_DATE = DateTime.now();
-    
+
+    private static final String TAG_DEFINITION_NAME = UUID.randomUUID().toString();
+
     private static final String SERVICE_NAME = "service name";
     private static final String BROADCAST_EVENT_TYPE = "broadcast event type";
     private static final String BROADCAST_EVENT_JSON = "{\"key\":\"value\"}";
@@ -461,6 +465,7 @@ public class TestBeatrixListener {
         provideCommonBusEventInfo(event);
         when(event.getBusEventType()).thenReturn(BusInternalEventType.USER_TAG_CREATION);
         when(event.getTagId()).thenReturn(OBJECT_ID);
+        provideCommonTagInfo(event);
 
         when(internalCallContextFactory.getAccountId(
                 OBJECT_ID,
@@ -478,7 +483,7 @@ public class TestBeatrixListener {
         assertEquals(postedEvent.getObjectId(), OBJECT_ID);
         assertEquals(postedEvent.getObjectType(), ObjectType.TAG);
         assertEquals(postedEvent.getEventType(), ExtBusEventType.TAG_CREATION);
-        assertNull(postedEvent.getMetaData());
+        assertEquals(postedEvent.getMetaData(), TAG_DEFINITION_NAME);
         assertCommonFieldsWithAccountId(postedEvent);
     }
 
@@ -488,6 +493,7 @@ public class TestBeatrixListener {
         provideCommonBusEventInfo(event);
         when(event.getBusEventType()).thenReturn(BusInternalEventType.CONTROL_TAG_CREATION);
         when(event.getTagId()).thenReturn(OBJECT_ID);
+        provideCommonTagInfo(event);
 
         when(internalCallContextFactory.getAccountId(
                 OBJECT_ID,
@@ -505,7 +511,7 @@ public class TestBeatrixListener {
         assertEquals(postedEvent.getObjectId(), OBJECT_ID);
         assertEquals(postedEvent.getObjectType(), ObjectType.TAG);
         assertEquals(postedEvent.getEventType(), ExtBusEventType.TAG_CREATION);
-        assertNull(postedEvent.getMetaData());
+        assertEquals(postedEvent.getMetaData(), TAG_DEFINITION_NAME);
         assertCommonFieldsWithAccountId(postedEvent);
     }
 
@@ -515,6 +521,7 @@ public class TestBeatrixListener {
         provideCommonBusEventInfo(event);
         when(event.getBusEventType()).thenReturn(BusInternalEventType.USER_TAG_DELETION);
         when(event.getTagId()).thenReturn(OBJECT_ID);
+        provideCommonTagInfo(event);
 
         when(internalCallContextFactory.getAccountId(
                 OBJECT_ID,
@@ -532,7 +539,7 @@ public class TestBeatrixListener {
         assertEquals(postedEvent.getObjectId(), OBJECT_ID);
         assertEquals(postedEvent.getObjectType(), ObjectType.TAG);
         assertEquals(postedEvent.getEventType(), ExtBusEventType.TAG_DELETION);
-        assertNull(postedEvent.getMetaData());
+        assertEquals(postedEvent.getMetaData(), TAG_DEFINITION_NAME);
         assertCommonFieldsWithAccountId(postedEvent);
     }
 
@@ -542,6 +549,7 @@ public class TestBeatrixListener {
         provideCommonBusEventInfo(event);
         when(event.getBusEventType()).thenReturn(BusInternalEventType.CONTROL_TAG_DELETION);
         when(event.getTagId()).thenReturn(OBJECT_ID);
+        provideCommonTagInfo(event);
 
         when(internalCallContextFactory.getAccountId(
                 OBJECT_ID,
@@ -559,7 +567,7 @@ public class TestBeatrixListener {
         assertEquals(postedEvent.getObjectId(), OBJECT_ID);
         assertEquals(postedEvent.getObjectType(), ObjectType.TAG);
         assertEquals(postedEvent.getEventType(), ExtBusEventType.TAG_DELETION);
-        assertNull(postedEvent.getMetaData());
+        assertEquals(postedEvent.getMetaData(), TAG_DEFINITION_NAME);
         assertCommonFieldsWithAccountId(postedEvent);
     }
 
@@ -722,8 +730,6 @@ public class TestBeatrixListener {
         beatrixListener.handleAllInternalKillbillEvents(event);
     }
 
-
-
     private void provideCommonBusEventInfo(BusInternalEvent event) {
         when(event.getSearchKey2()).thenReturn(SEARCH_KEY_2);
         when(event.getSearchKey1()).thenReturn(SEARCH_KEY_1);
@@ -776,6 +782,12 @@ public class TestBeatrixListener {
         when(event.getStatus()).thenReturn(TransactionStatus.SUCCESS);
         when(event.getTransactionType()).thenReturn(TransactionType.PURCHASE);
         when(event.getEffectiveDate()).thenReturn(PAYMENT_EFFECTIVE_DATE);
+    }
+
+    private void provideCommonTagInfo(final TagInternalEvent event) {
+        final TagDefinition tagDefinition = mock(TagDefinition.class);
+        when(tagDefinition.getName()).thenReturn(TAG_DEFINITION_NAME);
+        when(event.getTagDefinition()).thenReturn(tagDefinition);
     }
 
     private void assertPaymentMetadataFields(PaymentMetadata paymentMetadata) {
